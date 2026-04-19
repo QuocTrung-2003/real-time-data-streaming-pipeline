@@ -80,6 +80,20 @@ def main():
 
         )
 
+    # =========================
+    # 7. AGGREGATION
+    # =========================
+    aggregated_df = enriched_df \
+        .groupBy(window(col("event_time"), "5 minutes")) \
+        .agg(
+            avg("temperature").alias("avg_temperature"),
+            avg("windspeed").alias("avg_windspeed"),
+            max("temperature").alias("max_temperature"),
+            max("windspeed").alias("max_windspeed"),
+            first("wind_level", True).alias("wind_level"),
+            first("day_night", True).alias("day_night"),
+            first("weather_category", True).alias("weather_category")
+        )
 
     # =========================
     # 9. DEBUG CONSOLE
