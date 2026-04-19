@@ -49,6 +49,12 @@ def main():
         col("windspeed").isNotNull()
     )
 
+    # 5. Event time FIXED
+    enriched_df = cleaned_df.withColumn(
+        "event_time",
+        to_timestamp(col("time"), "yyyy-MM-dd'T'HH:mm")
+    ).filter(col("event_time").isNotNull())
+
 
     # =========================
     # 9. DEBUG CONSOLE
