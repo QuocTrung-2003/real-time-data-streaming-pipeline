@@ -34,7 +34,11 @@ def main():
     # 1. Kafka stream
     df = read_kafka_stream(spark)
 
-   
+    # 2. Parse JSON
+    parsed_df = parse_event(df)
+
+
+
 
     # =========================
     # 9. DEBUG CONSOLE
