@@ -1,30 +1,32 @@
 services:
 
-  # 1. Kafka Broker
+  # ─────────────────────────────
+  # 1. Kafka (Message Broker - KRaft mode)
+  # ─────────────────────────────
   kafka-broker:
     image: apache/kafka:3.7.0
     container_name: kafka
     ports:
       - "9092:9092"
 
-
     environment:
-      # KRaft mode
+      # KRaft configuration (no Zookeeper)
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_NODE_ID: 1
-
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
 
+      # Listener configuration
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
+      # Single-node settings
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
+      # Log storage
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
 
     networks:
@@ -37,8 +39,10 @@ services:
       retries: 10
       start_period: 20s
 
-      
-  # 2. Kafka Exporter - Extracts Kafka metrics for Prometheus
+
+  # ─────────────────────────────
+  # 2. Kafka Exporter (Metrics → Prometheus)
+  # ─────────────────────────────
   kafka-exporter:
     image: danielqsj/kafka-exporter:latest
     container_name: kafka-exporter
@@ -59,7 +63,9 @@ services:
       - data_pipeline
 
 
-# 3. Prometheus - Time-series Database for Metrics Storage
+  # ─────────────────────────────
+  # 3. Prometheus (Metrics Storage)
+  # ─────────────────────────────
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -67,38 +73,52 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+
     depends_on:
       - kafka-exporter
+
     networks:
       - data_pipeline
 
 
-  # 4. Grafana - Visualization Dashboard
+  # ─────────────────────────────
+  # 4. Grafana (Visualization Dashboard)
+  # ─────────────────────────────
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
       - "3000:3000"
+
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      # Optional: Enable anonymous access to bypass login screen
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+
     volumes:
-      # 1. Automated Prometheus connection (Data Source provisioning)
+      # Auto-configure Prometheus datasource
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      # 2. Automated loading of dashboard provider settings
+
+      # Auto-load dashboard configs
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      # 3. Mount folder containing actual JSON dashboard files
+
+      # Dashboard JSON files
       - ./grafana/dashboards:/var/lib/grafana/dashboards
+
     depends_on:
       - prometheus
+
     networks:
       - data_pipeline
- # 5. postgres - database
+
+
+  # ─────────────────────────────
+  # 5. PostgreSQL (Operational Database)
+  # ─────────────────────────────
   postgres:
     image: postgres:16
     container_name: postgres
+
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
@@ -107,8 +127,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../storage/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
     networks:
       - data_pipeline
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d db"]
       interval: 10s
@@ -117,26 +139,50 @@ services:
       start_period: 20s
 
 
-  # 6. Producer (Python Ingestion App)
+  # ─────────────────────────────
+  # 6. Ingestion Service (Kafka Producer)
+  # ─────────────────────────────
   ingestion_service:
     build:
       context: ..
       dockerfile: services/ingestion_service/Dockerfile
+
     container_name: ingestion_service
     env_file: ../.env
     restart: on-failure
+
     depends_on:
       kafka-broker:
         condition: service_healthy
+
     networks:
       - data_pipeline
 
 
+  # ─────────────────────────────
+  # 7. Processing Service (Stream Processing)
+  # ─────────────────────────────
+  processing_service:
+    build:
+      context: ..
+      dockerfile: services/processing_service/Dockerfile
+
+    container_name: processing_service
+    env_file: ../.env
+    restart: on-failure
+
+    depends_on:
+      kafka-broker:
+        condition: service_healthy
+
+    networks:
+      - data_pipeline
 
 
 networks:
   data_pipeline:
     driver: bridge
+
 
 volumes:
   postgres_data:
