@@ -10,6 +10,35 @@ from validator import validate
 from processing_service.config import CHECKPOINT_PATH
 
 
+# =========================
+# WRITE TO POSTGRES
+# =========================
+def write_to_postgres(batch_df, batch_id):
+
+    print(f"Batch ID: {batch_id}")
+    batch_df.show(truncate=False)
+
+    batch_df = batch_df.select(
+        col("window").getField("start").alias("window_start"),
+        col("window").getField("end").alias("window_end"),
+        "avg_temperature",
+        "avg_windspeed",
+        "max_temperature",
+        "max_windspeed",
+        "wind_level",
+        "day_night",
+        "weather_category"
+    )
+
+    batch_df.write \
+        .format("jdbc") \
+        .option("url", "jdbc:postgresql://postgres:5432/db") \
+        .option("dbtable", "stream_aggregates") \
+        .option("user", "user") \
+        .option("password", "pass") \
+        .option("driver", "org.postgresql.Driver") \
+        .mode("append") \
+        .save()
 
 
 
