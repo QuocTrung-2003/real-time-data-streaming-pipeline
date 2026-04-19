@@ -96,6 +96,16 @@ def main():
         )
 
     # =========================
+    # 8. POSTGRES SINK
+    # =========================
+    db_query = aggregated_df.writeStream \
+        .foreachBatch(write_to_postgres) \
+        .outputMode("update") \
+        .option("checkpointLocation", CHECKPOINT_PATH + "/db") \
+        .trigger(processingTime="20 seconds") \
+        .start()
+
+    # =========================
     # 9. DEBUG CONSOLE
     # =========================
     console_query = aggregated_df.writeStream \
