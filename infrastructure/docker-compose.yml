@@ -196,6 +196,20 @@ services:
     networks:
       - data_pipeline
 
+  # ─────────────────────────────
+  # 9. Metrics-consumer
+  # ─────────────────────────────
+  metrics-consumer:
+    build:
+      context: ..
+      dockerfile: services/metrics_consumer/Dockerfile
+    container_name: metrics-consumer
+    depends_on:
+      kafka-broker:
+        condition: service_healthy
+    networks:
+      - data_pipeline
+
 networks:
   data_pipeline:
     driver: bridge
