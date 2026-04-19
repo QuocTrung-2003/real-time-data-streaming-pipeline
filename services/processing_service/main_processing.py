@@ -38,6 +38,16 @@ def main():
     parsed_df = parse_event(df)
 
 
+    # 3. Validate
+    # validated_df = validate(parsed_df)
+    validated_df = parsed_df
+    
+    # 4. Clean nulls
+    cleaned_df = validated_df.filter(
+        col("time").isNotNull() &
+        col("temperature").isNotNull() &
+        col("windspeed").isNotNull()
+    )
 
 
     # =========================
