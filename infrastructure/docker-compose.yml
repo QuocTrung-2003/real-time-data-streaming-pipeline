@@ -36,3 +36,24 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+      
+  # 2. Kafka Exporter - Extracts Kafka metrics for Prometheus
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
+    restart: always
+
+    command:
+      - "--kafka.server=kafka:9092"
+      - "--web.listen-address=:9308"
+
+    ports:
+      - "9308:9308"
+
+    depends_on:
+      kafka-broker:
+        condition: service_healthy
+
+    networks:
+      - data_pipeline
