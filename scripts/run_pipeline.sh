@@ -124,3 +124,7 @@ main() {
 }
 
 main "$@"
+
+#nano ~/.docker/config.json
+#"credsStore": "desktop.exe"
+#{}

@@ -3,7 +3,7 @@ from pyspark.sql.functions import (
     col, avg, max, window, to_timestamp,
     when
 )
-from pyspark.sql.functions import first
+from pyspark.sql.functions import first , from_utc_timestamp
 from consumer import read_kafka_stream
 from transformer import parse_event
 from validator import validate
@@ -81,7 +81,10 @@ def main():
     # 5. Event time FIXED
     enriched_df = cleaned_df.withColumn(
         "event_time",
-        to_timestamp(col("time"), "yyyy-MM-dd'T'HH:mm")
+         from_utc_timestamp(
+            to_timestamp(col("time"), "yyyy-MM-dd'T'HH:mm"),
+            "Asia/Ho_Chi_Minh"
+         )
     ).filter(col("event_time").isNotNull())
 
     # =========================
