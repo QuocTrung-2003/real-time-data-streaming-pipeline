@@ -55,6 +55,31 @@ def main():
         to_timestamp(col("time"), "yyyy-MM-dd'T'HH:mm")
     ).filter(col("event_time").isNotNull())
 
+    # =========================
+    # 6. FEATURE ENGINEERING
+    # =========================
+    enriched_df = enriched_df \
+        .withColumn(
+            "wind_level",
+            when(col("windspeed") < 5, "low")
+            .when(col("windspeed") < 15, "medium")
+            .otherwise("high")
+        ) \
+        .withColumn(
+            "day_night",
+            when(col("is_day") == 1, "day").otherwise("night")
+        ) \
+        .withColumn(
+            "weather_category",
+            when(col("weathercode").isin([0]), "clear")          # 0 = trời quang
+            .when(col("weathercode").isin([1,2,3]), "cloudy")    # 1,2,3 = mây thưa, ít, nhiều
+            .when(col("weathercode").isin([45,48]), "fog")       # 45,48 = sương mù, sương mù đóng băng
+            .when(col("weathercode").isin([51,53,55]), "drizzle")# 51,53,55 = mưa phùn nhẹ, vừa, nặng
+            .when(col("weathercode").isin([61,63,65]), "rain")   # 61,63,65 = mưa nhẹ, vừa, nặng
+            .otherwise("unknown")
+
+        )
+
 
     # =========================
     # 9. DEBUG CONSOLE
