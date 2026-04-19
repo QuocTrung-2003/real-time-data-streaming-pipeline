@@ -116,6 +116,24 @@ services:
       retries: 10
       start_period: 20s
 
+
+  # 6. Producer (Python Ingestion App)
+  ingestion_service:
+    build:
+      context: ..
+      dockerfile: services/ingestion_service/Dockerfile
+    container_name: ingestion_service
+    env_file: ../.env
+    restart: on-failure
+    depends_on:
+      kafka-broker:
+        condition: service_healthy
+    networks:
+      - data_pipeline
+
+
+
+
 networks:
   data_pipeline:
     driver: bridge
