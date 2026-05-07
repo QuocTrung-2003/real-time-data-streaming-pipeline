@@ -2,10 +2,11 @@ from kafka import KafkaConsumer
 import json
 import time
 import logging
+import os
 
-TOPIC = "weather.raw"
-BOOTSTRAP_SERVERS = "kafka:9092"
-GROUP_ID = "weather-consumer-group"
+TOPIC = os.getenv("STREAM_RAW_TOPIC")
+BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+GROUP_ID = os.getenv("STREAM_CONSUMER_GROUP")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -17,13 +18,16 @@ while True:
             bootstrap_servers=BOOTSTRAP_SERVERS,
             group_id=GROUP_ID,
             auto_offset_reset="earliest",
+            enable_auto_commit=True,
+            session_timeout_ms=30000,
+            heartbeat_interval_ms=10000,
             value_deserializer=lambda x: json.loads(x.decode("utf-8"))
         )
         logging.info("Connected to Kafka!")
         break
     except Exception as e:
         logging.warning(f"Kafka not ready, retrying... {e}")
-        time.sleep(1)
+        time.sleep(3)
 
 print("Waiting for messages...")
 
